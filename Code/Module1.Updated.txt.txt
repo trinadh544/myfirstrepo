@@ -1,0 +1,167 @@
+Sub TransactionGenerator()
+Dim arrayCardTemplate(300) As String
+Dim arrayCardWork(300) As String
+sname = ActiveSheet.Name
+fname = sname & ".txt"
+' MsgBox fname
+wkbkpath = ActiveWorkbook.Path & "\Cards\" & fname
+' MsgBox wkbkpath
+'sfile = ActiveWorkbook.Path & "\Output\" & Replace(Replace(Replace(Now(), " ", ""), "/", ""), ":", "") & "_" & fname
+sfile1 = ActiveWorkbook.Path & "\Output\" & "Transaction_Cards.txt"
+sfile2 = ActiveWorkbook.Path & "\Output\" & "INPUT.AUTOREG.txt"
+sfile3 = ActiveWorkbook.Path & "\Output\TEMP.TRANLOAD." & fname
+sfile4 = ActiveWorkbook.Path & "\Output\INPUT.AUTOREG_" & fname
+
+outfile1 = ActiveWorkbook.Path & "\Output\" & "Sheet_Name.txt"
+Open outfile1 For Output Access Write As #6
+Print #6, ActiveSheet.Name
+Close #6
+
+infile1 = ActiveWorkbook.Path & "\Output\" & "Run_Details.txt"
+Open infile1 For Input As #7
+y = 1
+Do While y <= 1
+Line Input #7, RunDate
+y = y + 1
+Loop
+Close #7
+
+' Open sFile For Output Access Write As #2
+On Error GoTo InputFileNotFound
+Open wkbkpath For Input As #1
+i = 1
+Do While Not EOF(1)
+    Line Input #1, Shorttext
+ '   Print #2, Shorttext
+    arrayCardTemplate(i) = Shorttext   '***Copying the card template to an array
+    i = i + 1
+'    MsgBox Shorttext
+Loop
+Close #1
+' Close #2
+totnoCards = i - 1
+'For j = 1 To totnoCards
+'    MsgBox arrayCard(j)
+'Next j
+
+' Determine no of cols to read and populate line no where the field appears
+FCOL = 3
+HDR = 1
+FIELDROW = 2
+LSTORE = 6   '**row where the line no will be stored
+cntCol = FCOL
+
+Do Until (Trim(Sheets(sname).Cells(HDR, cntCol)) = "")
+   ' populate line 5 with the line no of the card
+    repFld = Trim(Sheets(sname).Cells(FIELDROW, cntCol))
+    cnrepFld = "^" & repFld & "^"
+   For j = 1 To totnoCards
+       If (InStr(arrayCardTemplate(j), cnrepFld) > 0) Then
+            Sheets(sname).Cells(LSTORE, cntCol) = j
+       End If
+   Next j
+    cntCol = cntCol + 1
+Loop
+totCol = cntCol - 1   ' totCol variable will hold the no of columns to read
+
+' copy template area to array work area
+
+For l = 1 To totnoCards
+    arrayCardWork(l) = arrayCardTemplate(l)
+Next l
+
+
+' Read setup data and populate the output card
+On Error GoTo OutputDirNotFound
+Open sfile1 For Output Access Write As #2  ' Open output card file
+Open sfile2 For Output Access Write As #3  ' Open output card file
+Open sfile3 For Output Access Write As #4  ' Open output card file
+Open sfile4 For Output Access Write As #5  ' Open output card file
+FROW = 7
+RNOCOL = 2
+cntData = FROW
+LNGTHROW = 3
+PADROW = 5
+k = 1   'counter for reading the cols
+Dim fieldValue As String
+Dim padFld As String
+Dim FieldLength As Long
+Dim padSide As String
+
+'Print #3, Sheets(sname).Cells(cntData - 1, 106)
+'Print #5, Sheets(sname).Cells(cntData - 1, 106)
+
+Do Until (Trim(Sheets(sname).Cells(cntData, RNOCOL)) = "")
+   For k = FCOL To totCol
+        fieldValue = Sheets(sname).Cells(cntData, k)
+        Lineno = Sheets(sname).Cells(LSTORE, k)
+        FieldLength = Sheets(sname).Cells(LNGTHROW, k)
+         padSide = Sheets(sname).Cells(PADROW, k)
+        padFld = PadString(fieldValue, FieldLength, padSide)
+        repFld = "^" & Sheets(sname).Cells(FIELDROW, k) & "^"
+        arrayCardWork(Lineno) = Replace(arrayCardWork(Lineno), repFld, padFld)
+   Next k
+   'Write card
+   For m = 1 To totnoCards
+       Print #2, arrayCardWork(m)
+       Print #4, arrayCardWork(m)
+   Next m
+   
+   Print #3, Sheets(sname).Cells(cntData, 3) & ";" & Sheets(sname).Cells(cntData, 4) & ";" & Sheets(sname).Cells(cntData, 5) & ";" & Sheets(sname).Cells(cntData, 6) & ";" & Sheets(sname).Cells(cntData, 7) & ";" & RunDate
+   Print #5, Sheets(sname).Cells(cntData, 3) & ";" & Sheets(sname).Cells(cntData, 4) & ";" & Sheets(sname).Cells(cntData, 5) & ";" & Sheets(sname).Cells(cntData, 6) & ";" & Sheets(sname).Cells(cntData, 7) & ";" & RunDate
+   
+   cntData = cntData + 1
+   'Copy template card to work card
+   For l = 1 To totnoCards
+          arrayCardWork(l) = arrayCardTemplate(l)
+   Next l
+Loop
+
+Close #2
+Close #3
+Close #4
+Close #5
+Exit Sub
+InputFileNotFound:
+MsgBox "Input card file not found"
+Exit Sub
+OutputDirNotFound:
+MsgBox "Unable to create output file...Please check if output directory is present"
+Exit Sub
+End Sub
+
+Public Function PadString(Text As String, Length As Long, _
+    Optional ByVal TextSide As String = "LF", _
+    Optional PadChar As String = " ") As String
+    
+Dim sPadChar As String
+
+If Len(Text) >= Length Then
+    ' if the source string is longer than the specified length, return the
+    ' Length left characters
+    PadString = Left(Text, Length)
+    Exit Function
+End If
+
+If Len(PadChar) = 0 Then
+    ' PadChar is an empty string. use a space.
+    sPadChar = " "
+Else
+    ' use only the first character of PadChar
+    sPadChar = Left(PadChar, 1)
+End If
+
+If (TextSide <> "LF") And (TextSide <> "RT") Then
+    ' if TextSide was neither LF nor RT, use LF.
+    TextSide = "LF"
+End If
+
+If TextSide = "LF" Then
+    ' if the text goes on the left, fill out the right with spaces
+    PadString = Text & String(Length - Len(Text), sPadChar)
+Else
+    ' otherwise fill on the left and put the Text on the right
+    PadString = String(Length - Len(Text), sPadChar) & Text
+End If
+
+End Function

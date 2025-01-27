@@ -1,0 +1,203 @@
+
+Private Sub Putty_ID_Change()
+
+End Sub
+
+Private Sub Region_1_Change()
+
+End Sub
+
+Private Sub Run_Date_Change()
+If Run_Date.Text = "" Then
+Run_Date.Text = "CCYYMMDD"
+End If
+End Sub
+
+Private Sub Run_Date_Frame_Click()
+
+End Sub
+
+Private Sub Run_Date_Label_Click()
+
+End Sub
+
+Private Sub Submit_Click()
+
+If TCG_Input_File = "" Then
+MsgBox ("Transaction Card Generator file is not chosen")
+Exit Sub
+End If
+
+
+If Run_Date = "CCYYMMDD" Then
+MsgBox ("Please choose the Run Date")
+Exit Sub
+End If
+
+
+
+outfile = ActiveWorkbook.Path & "\Output\" & "Run_Details.txt"
+Open outfile For Output Access Write As #2
+Print #2, Run_Date
+Close #2
+
+Dim New_Sheet As Workbook
+Dim StrCode As String
+Dim HasMacro As Boolean
+Dim SHEETCOUNT As Integer
+Dim FORMSHEET As Worksheet
+Dim CodeMod As VBIDE.CodeModule
+
+HasMacro = False
+Set New_Sheet = Workbooks.Open(TCG_Input_File)
+New_Sheet.Activate
+
+SHEETCOUNT = Sheets.Count
+'MsgBox (SHEETCOUNT)
+
+For Each FORMSHEET In Worksheets
+FORMSHEET.Activate
+
+With New_Sheet.VBProject
+
+If .VBComponents.Count > 0 Then
+For i = 1 To .VBComponents.Count
+
+Set CodeMod = .VBComponents.Item(i).CodeModule
+With CodeMod
+        LineNum = 1
+        Do Until LineNum >= .CountOfLines
+        StrCode = .Lines(LineNum, 1)
+        If InStr(StrCode, "Sub TransactionGenerator") > 0 Then
+        'MsgBox ("Got the required macro")
+        
+        'Dim AckTime1 As Integer, InfoBoxWebSearches1 As Object
+        'Set InfoBoxWebSearches1 = CreateObject("WScript.Shell")
+        'AckTime1 = 1
+        'Select Case InfoBoxWebSearches1.Popup("Got the required macro", AckTime)
+        'Case 1, -1
+        'End Select
+        
+        Application.Wait (Now + TimeValue("0:00:02"))
+        HasMacro = True
+        'Application.Run New_Sheet.Name & "!ThisWorkbook.TransactionGenerator"
+        Application.Run ("'" & New_Sheet.Name & "'" & "!Module1.TransactionGenerator")
+        
+        Dim AckTime2 As Integer, InfoBoxWebSearches2 As Object
+        Set InfoBoxWebSearches2 = CreateObject("WScript.Shell")
+        AckTime = 1
+        Select Case InfoBoxWebSearches2.Popup("Completed with the Macro execution", AckTime)
+        Case 1, -1
+        End Select
+        
+        Application.DisplayAlerts = False
+        
+'Set App = CreateObject("QuickTest.Application")
+'App.Launch
+'App.Visible = True
+'App.WindowState = "Maximized" ' Maximize the QuickTest window
+'App.ActivateView "ExpertView" ' Display the Expert View
+'App.Open "C:\Omni_Regression_Automation\UFT Scrips\Test_Merged", True
+'App.Test.Run , True
+'App.Test.Close
+'App.Quit
+'Set App = Nothing
+Call quicktest
+
+Application.DisplayAlerts = True
+        
+        Application.Wait (Now + TimeValue("0:00:02"))
+        Exit Do
+        End If
+        LineNum = LineNum + 1
+        Loop
+    End With
+Next
+If HasMacro = False Then
+MsgBox ("Required macro is not available")
+End If
+End If
+End With
+
+Next FORMSHEET
+
+New_Sheet.Save
+New_Sheet.Close
+
+Dim AckTime3 As Integer, InfoBoxWebSearches3 As Object
+        Set InfoBoxWebSearches3 = CreateObject("WScript.Shell")
+        AckTime = 1
+        Select Case InfoBoxWebSearches3.Popup("Completed with all the steps", AckTime)
+        Case 1, -1
+        End Select
+
+End Sub
+
+Sub TCG_Select_Click()
+    Dim FD As Office.FileDialog
+    Dim TXTFileName As String
+    Set FD = Application.FileDialog(msoFileDialogFilePicker)
+   With FD
+      .AllowMultiSelect = False
+      .Title = "Please select the Transaction Card Generator input file"
+      .Filters.Clear
+      .Filters.Add "All Files", "*.*"
+      If .Show = True Then
+      TXTFileName = .SelectedItems(1)
+      End If
+   End With
+   FileExtension = Right(TXTFileName, Len(TXTFileName) - InStrRev(TXTFileName, "."))
+   If ((FileExtension = "xls") Or (FileExtension = "xlsm") Or (FileExtension = "xlsx")) Then
+   TCG_Input_File = TXTFileName
+   Else
+   MsgBox ("Choose correct file format")
+   TCG_Input_File.Text = "Please select the Transaction Card Generator input"
+   End If
+End Sub
+
+Private Sub TextBox1_Change()
+
+End Sub
+
+Private Sub UserForm_Initialize()
+TCG_Input_File.Text = "Select the Transaction Card Generator input"
+Run_Date.Text = "CCYYMMDD"
+End Sub
+Private Sub quicktest()
+Set fso = CreateObject("Scripting.FileSystemObject")
+Set infile1 = fso.OpenTextFile(ActiveWorkbook.Path & "\Output\Sheet_Name.txt")
+Do While infile1.AtEndofStream <> True
+SheetName = infile1.ReadLine()
+Loop
+Set infile2 = fso.OpenTextFile(ActiveWorkbook.Path & "\Output\Run_Details.txt")
+Do While infile2.AtEndofStream <> True
+Data1 = infile2.ReadLine()
+RunDate = Data1
+Loop
+'Client1 = LCase(Client1)
+'Client2 = LCase(Client2)
+'r1 = Right(region1, 1)
+'r2 = Right(region2, 1)
+'Dim myfile
+'Set myfile = fso.OpenTextFile(ActiveWorkbook.Path & "\ftp_cmd.ini", 2, True)
+'myfile.WriteLine ("open putty")
+'myfile.WriteLine (PuttyID)
+'myfile.WriteLine (PuttyPassword)
+'myfile.WriteLine ("sesu - omni" & Client1 & r1)
+'myfile.WriteLine ("cd /omni/data/rel595/" & Client1 & "/" & LCase(region1) & "/temp")
+'myfile.WriteLine ("put " & ActiveWorkbook.Path & "\Output\Transaction_Cards.txt TEMP.TRANLOAD1")
+'myfile.WriteLine ("put " & ActiveWorkbook.Path & "\Output\INPUT.AUTOREG.txt INPUT.AUTOREG1")
+'myfile.WriteLine ("exit")
+'myfile.WriteLine ("sesu - omni" & Client2 & r2)
+'myfile.WriteLine ("cd /omni/data/rel595/" & Client2 & "/" & LCase(region2) & "/temp")
+'myfile.WriteLine ("put " & ActiveWorkbook.Path & "\Output\Transaction_Cards.txt TEMP.TRANLOAD1")
+'myfile.WriteLine ("put " & ActiveWorkbook.Path & "\Output\INPUT.AUTOREG.txt INPUT.AUTOREG1")
+'myfile.WriteLine ("exit")
+'myfile.WriteLine ("exit")
+'myfile.Close
+'SystemUtil.Run "c:\windows\system32\ftp.exe", "-s:" & ActiveWorkbook.Path & "ftp_cmd.ini"
+'Dim msg
+ 'msg = "Input files has been transferred from Windows to Linux server."
+ 'Set oShell = CreateObject("WScript.Shell")
+ 'oShell.Popup msg, 10, "Input File Transfer"
+End Sub
